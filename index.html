@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><b>Yoga Pose Classifier</b></title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        #app {
+            text-align: center;
+            background-image: url(images/pose.jpg);
+            background-image: url(images/poses.jpg);/* Add your image file path */
+            background-size:cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Flip horizontally */
+        }
+
+        #result {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 20px;
+        }
+
+        #enableCameraBtn {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Yoga Pose Classifier</h1>
+        <button id="enableCameraBtn" onclick="enableCamera()">Check With Camera</button>
+        <video id="webcam" autoplay playsinline style="display: none;"></video>
+        <div id="result"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+    <script>
+        async function setupWebcam() {
+            const video = document.getElementById('webcam');
+            const stream = await navigator.mediaDevices.getUserMedia({ 'video': {} });
+            video.srcObject = stream;
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    resolve(video);
+                };
+            });
+        }
+
+        async function loadPoseNet() {
+            const net = await tf.poseDetection.createDetector(tf.browser.fromNpm('@tensorflow-models/pose-detection'));
+            return net;
+        }
+
+        async function classifyPose() {
+            const video = await setupWebcam();
+            const net = await loadPoseNet();
+
+            async function detectPose() {
+                const poses = await net.estimatePoses(video);
+                const resultElement = document.getElementById('result');
+                resultElement.textContent = `Detected Poses: ${poses.length}`;
+                requestAnimationFrame(detectPose);
+            }
+
+            detectPose();
+        }
+
+        function enableCamera() {
+            const enableCameraBtn = document.getElementById('enableCameraBtn');
+            const video = document.getElementById('webcam');
+            
+            navigator.mediaDevices.getUserMedia({ 'video': {} })
+                .then(() => {
+                    enableCameraBtn.style.display = 'none';
+                    video.style.display = 'block';
+                    classifyPose();
+                })
+                .catch((error) => {
+                    console.error('Error accessing camera:', error);
+                    alert('Error accessing camera. Please check your camera permissions.');
+                });
+        }
+    </script>
+</body>
+</html>
